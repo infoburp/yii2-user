@@ -1,6 +1,6 @@
 <?php
 
-namespace amnah\yii2\user\models;
+namespace infoburp\yii2\user\models;
 
 use Yii;
 use yii\db\ActiveRecord;
@@ -20,7 +20,7 @@ use yii\db\ActiveRecord;
 class Profile extends ActiveRecord
 {
     /**
-     * @var \amnah\yii2\user\Module
+     * @var \app\modules\user\Module
      */
     public $module;
 

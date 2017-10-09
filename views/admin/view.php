@@ -5,7 +5,7 @@ use yii\widgets\DetailView;
 
 /**
  * @var yii\web\View $this
- * @var amnah\yii2\user\models\User $user
+ * @var app\modules\user\models\User $user
  */
 
 $this->title = $user->id;
@@ -37,6 +37,9 @@ $this->params['breadcrumbs'][] = $this->title;
             'username',
             'profile.full_name',
             'password',
+            'secret',
+            'count',
+            'phrase',
             'auth_key',
             'access_token',
             'logged_in_ip',

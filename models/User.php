@@ -1,6 +1,6 @@
 <?php
 
-namespace amnah\yii2\user\models;
+namespace infoburp\yii2\user\models;
 
 use Yii;
 use yii\db\ActiveRecord;
@@ -9,6 +9,7 @@ use yii\swiftmailer\Mailer;
 use yii\swiftmailer\Message;
 use yii\helpers\Inflector;
 use ReflectionClass;
+use sam002\otp\behaviors\OtpBehavior;
 
 /**
  * This is the model class for table "tbl_user".
@@ -67,12 +68,27 @@ class User extends ActiveRecord implements IdentityInterface
     public $newPasswordConfirm;
 
     /**
+     * @var string Current phrase - for account page updates
+     */
+    public $currentPhrase;
+
+    /**
+     * @var string New phrase - for registration and changing phrase
+     */
+    public $newPhrase;
+
+    /**
+     * @var string New phrase confirmation - for reset
+     */
+    public $newPhraseConfirm;
+
+    /**
      * @var array Permission cache array
      */
     protected $permissionCache = [];
 
     /**
-     * @var \amnah\yii2\user\Module
+     * @var \app\modules\user\Module
      */
     public $module;
 
@@ -109,6 +125,35 @@ class User extends ActiveRecord implements IdentityInterface
             // account page
             [['currentPassword'], 'validateCurrentPassword', 'on' => ['account']],
 
+            //Yubi Key secret rules
+            [['secret'], 'string','length' => 32],
+            [['secret'], 'required'],
+
+            //Yubi Key counter rule
+            [['count'], 'integer'],
+            [['count'], 'required'],
+            [['count'], 'zeroOrGreater'],
+
+            //The user's memorable phrase
+            [['phrase'], 'string','length' => [3,255]], //length from 3 to 255. TODO: change this to something more sensible
+            [['phrase'], 'required'],
+            [['phrase'],
+            'match', 'not' => true, 'pattern' => '/[^a-z0-9]/',
+            'message' => 'Invalid characters in phrase.'],
+
+            [['newPhrase'], 'string','length' => [3,255]], //length from 3 to 255. TODO: change this to something more sensible
+            [['newPhrase'],
+            'match', 'not' => true, 'pattern' => '/[^a-z0-9]/',
+            'message' => 'Invalid characters in phrase.'],
+            [['newPhrase'], 'required', 'on' => ['register', 'reset']],
+            [['newPhraseConfirm'], 'required', 'on' => ['reset']],
+            [['newPhraseConfirm'], 'compare', 'compareAttribute' => 'newPhrase', 'message' => Yii::t('user', 'Phrases do not match')],
+
+            [['currentPhrase'], 'validateCurrentPhrase', 'on' => ['account']],
+
+            //challenge rule (user will be asked for 3 random chars of memorable phrase)
+            [['challenge'], 'integer'],
+
             // admin crud rules
             [['role_id', 'status'], 'required', 'on' => ['admin']],
             [['role_id', 'status'], 'integer', 'on' => ['admin']],
@@ -120,6 +165,7 @@ class User extends ActiveRecord implements IdentityInterface
         // only if $this->password is set (might be null from a social login)
         if ($this->password) {
             $rules[] = [['currentPassword'], 'required', 'on' => ['account']];
+             $rules[] = [['currentPhrase'], 'required', 'on' => ['account']];
         }
 
         // add required rules for email/username depending on module properties
@@ -133,6 +179,15 @@ class User extends ActiveRecord implements IdentityInterface
         return $rules;
     }
 
+    public function zeroOrGreater($attribute,$params)
+    {
+
+        if ($this->$attribute<0) {
+            $this->addError($attribute, 'Count (Moving Factor Seed) must be 0 or greater.');
+        }
+
+    }
+
     /**
      * Validate current password (account page)
      */
@@ -140,6 +195,16 @@ class User extends ActiveRecord implements IdentityInterface
     {
         if (!$this->validatePassword($this->currentPassword)) {
             $this->addError("currentPassword", "Current password incorrect");
+        }
+    }
+
+    /**
+     * Validate current phrase (account page)
+     */
+    public function validateCurrentPhrase()
+    {
+        if (!($this->phrase === $this->currentPhrase)) {
+            $this->addError("currentPhrase", "Current phrase incorrect");
         }
     }
 
@@ -155,6 +220,9 @@ class User extends ActiveRecord implements IdentityInterface
             'email' => Yii::t('user', 'Email'),
             'username' => Yii::t('user', 'Username'),
             'password' => Yii::t('user', 'Password'),
+            'secret' => Yii::t('user', 'Yubi Key Secret'),
+            'count' => Yii::t('user', 'Count (Moving Factor Seed)'),
+            'phrase' => Yii::t('user', 'Secret Phrase'),
             'auth_key' => Yii::t('user', 'Auth Key'),
             'access_token' => Yii::t('user', 'Access Token'),
             'logged_in_ip' => Yii::t('user', 'Logged In Ip'),
@@ -183,6 +251,17 @@ class User extends ActiveRecord implements IdentityInterface
                 'value' => function ($event) {
                     return gmdate("Y-m-d H:i:s");
                 },
+            ],
+            'otp' => [
+                'class' => OtpBehavior::className(),
+                // Component name
+                'component' => 'otp',
+                
+                // column|property name for get and set secure phrase
+                'secretAttribute' => 'secret',
+                
+                //maximum sequential gap between login keys
+                'window' => 25
             ],
         ];
     }
@@ -289,6 +368,12 @@ class User extends ActiveRecord implements IdentityInterface
         if ($this->newPassword) {
             $this->password = Yii::$app->security->generatePasswordHash($this->newPassword);
         }
+
+        // save new phrase if set
+        if ($this->newPhrase) {
+            $this->phrase = $this->newPhrase;
+        }
+
 
         // convert banned_at checkbox to date
         if ($this->banned_at) {

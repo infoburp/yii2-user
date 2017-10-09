@@ -1,5 +1,5 @@
 {
-    "name": "amnah/yii2-user",
+    "name": "infoburp/yii2-user",
     "description": "Yii 2 user authentication module",
     "keywords": ["yii", "yii2", "user", "auth", "authentication"],
     "type": "yii2-extension",
@@ -8,13 +8,18 @@
         {
             "name": "amnah",
             "email": "amnah.dev@gmail.com"
+        },
+        {
+            "name": "infoburp",
+            "email": "gwolfendale@gmail.com"
         }
     ],
     "require": {
         "yiisoft/yii2": "*",
-        "yiisoft/yii2-authclient": "*"
+        "yiisoft/yii2-authclient": "*",
+        "infoburp/yii2-otp": "*"
     },
     "autoload": {
-        "psr-4": { "amnah\\yii2\\user\\": "" }
+        "psr-4": { "infoburp\\yii2\\user\\": "" }
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace amnah\yii2\user\controllers;
+namespace infoburp\yii2\user\controllers;
 
 use Yii;
 use yii\web\HttpException;
@@ -14,7 +14,7 @@ class CopyController extends Controller
     /**
      * @var string From path
      */
-    public $from = "@vendor/amnah/yii2-user";
+    public $from = "@vendor/infoburp/yii2-user";
 
     /**
      * @var string To path

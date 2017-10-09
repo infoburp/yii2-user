@@ -1,6 +1,6 @@
 <?php
 
-namespace amnah\yii2\user\models\forms;
+namespace infoburp\yii2\user\models\forms;
 
 use Yii;
 use yii\base\Model;
@@ -26,14 +26,16 @@ class LoginForm extends Model
     public $rememberMe = true;
 
     /**
-     * @var \amnah\yii2\user\models\User
+     * @var \app\modules\user\models\User
      */
     protected $user = false;
 
     /**
-     * @var \amnah\yii2\user\Module
+     * @var \app\modules\user\Module
      */
     public $module;
+
+    public $otp;
 
     /**
      * @inheritdoc
@@ -51,10 +53,11 @@ class LoginForm extends Model
     public function rules()
     {
         return [
-            [["email", "password"], "required"],
+            [["email", "password", "otp"], "required"],
             ["email", "validateUser"],
             ["password", "validatePassword"],
             ["rememberMe", "boolean"],
+            ["otp", "validateOtp"]
         ];
     }
 
@@ -85,7 +88,7 @@ class LoginForm extends Model
 
         // check status and resend email if inactive
         if ($user && $user->status == $user::STATUS_INACTIVE) {
-            /** @var \amnah\yii2\user\models\UserToken $userToken */
+            /** @var \app\modules\user\models\UserToken $userToken */
             $userToken = $this->module->model("UserToken");
             $userToken = $userToken::generate($user->id, $userToken::TYPE_EMAIL_ACTIVATE);
             $user->sendEmailConfirmation($userToken);
@@ -103,7 +106,7 @@ class LoginForm extends Model
             return;
         }
 
-        /** @var \amnah\yii2\user\models\User $user */
+        /** @var \app\modules\user\models\User $user */
 
         // check if password is correct
         $user = $this->getUser();
@@ -113,8 +116,21 @@ class LoginForm extends Model
     }
 
     /**
+     * Validates the OTP.
+     */
+    public function validateOtp()
+    {
+        if (!$this->hasErrors()) {
+            $user = $this->getUser();
+            if (!$user || !$user->validateOtpSecret($this->otp)) {
+                $this->addError('otp', Yii::t('user', 'Incorrect code.'));
+            }
+        }
+    }
+
+    /**
      * Get user based on email and/or username
-     * @return \amnah\yii2\user\models\User|null
+     * @return \app\modules\user\models\User|null
      */
     public function getUser()
     {

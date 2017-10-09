@@ -3,6 +3,8 @@
 use yii\db\Schema;
 use yii\db\Migration;
 
+//sets up the user table for yii2-user and Yubi Key logins
+
 class m150214_044831_init_user extends Migration
 {
     public function up()
@@ -36,6 +38,10 @@ class m150214_044831_init_user extends Migration
             'updated_at' => Schema::TYPE_TIMESTAMP . ' null',
             'banned_at' => Schema::TYPE_TIMESTAMP . ' null',
             'banned_reason' => Schema::TYPE_STRING . ' null',
+            'secret' => Schema::TYPE_STRING . ' null', //the Yubi Key shared secret (NB: You must convert from Hex to Base32)
+            'count' => Schema::TYPE_INTEGER . ' null', //increments by 1 each time the Yubi Key is used to login and dictates the generated key (aka the moving factor)
+            'phrase' => Schema::TYPE_STRING . ' null', //the secret phrase (select chars x,y,z from secret phrase)
+            'challenge' => Schema::TYPE_INTEGER . ' null' //if the user still needs to ba challenged this is 1, otherwise 0 (fully logged in)
         ], $tableOptions);
         $this->createTable('{{%user_token}}', [
             'id' => Schema::TYPE_PK,
@@ -85,7 +91,7 @@ class m150214_044831_init_user extends Migration
 
         // insert admin user: neo/neo
         $security = Yii::$app->security;
-        $columns = ['role_id', 'email', 'username', 'password', 'status', 'created_at', 'access_token', 'auth_key'];
+        $columns = ['role_id', 'email', 'username', 'password', 'status', 'created_at', 'access_token', 'auth_key', 'secret', 'count', 'phrase', 'challenge'];
         $this->batchInsert('{{%user}}', $columns, [
             [
                 1, // Role::ROLE_ADMIN
@@ -96,6 +102,10 @@ class m150214_044831_init_user extends Migration
                 gmdate('Y-m-d H:i:s'),
                 $security->generateRandomString(),
                 $security->generateRandomString(),
+                'LWRSCCZXOXZZY3YOUSZP47ACYRUD5VNL',
+                0,
+                'theone',
+                1
             ],
         ]);
 

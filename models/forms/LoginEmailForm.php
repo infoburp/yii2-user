@@ -1,6 +1,6 @@
 <?php
 
-namespace amnah\yii2\user\models\forms;
+namespace infoburp\yii2\user\models\forms;
 
 use Yii;
 use yii\swiftmailer\Mailer;
@@ -57,7 +57,7 @@ class LoginEmailForm extends LoginForm
     {
         /** @var Mailer $mailer */
         /** @var Message $message */
-        /** @var \amnah\yii2\user\models\UserToken $userToken */
+        /** @var \app\modules\user\models\UserToken $userToken */
 
         if (!$this->validate()) {
             return false;

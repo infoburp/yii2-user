@@ -1,6 +1,6 @@
 <?php
 
-namespace amnah\yii2\user\controllers;
+namespace infoburp\yii2\user\controllers;
 
 use Yii;
 use yii\web\Controller;
@@ -8,14 +8,15 @@ use yii\web\Response;
 use yii\filters\AccessControl;
 use yii\filters\VerbFilter;
 use yii\widgets\ActiveForm;
-
+use yii\helpers\Url;
+use infoburp\yii2\user\models\User;
 /**
  * Default controller for User module
  */
 class DefaultController extends Controller
 {
     /**
-     * @var \amnah\yii2\user\Module
+     * @var \app\modules\user\Module
      * @inheritdoc
      */
     public $module;
@@ -35,7 +36,7 @@ class DefaultController extends Controller
                         'roles' => ['?', '@'],
                     ],
                     [
-                        'actions' => ['account', 'profile', 'resend-change', 'cancel'],
+                        'actions' => ['account', 'profile', 'resend-change', 'cancel', 'challenge'],
                         'allow' => true,
                         'roles' => ['@'],
                     ],
@@ -75,7 +76,7 @@ class DefaultController extends Controller
      */
     public function actionLogin()
     {
-        /** @var \amnah\yii2\user\models\forms\LoginForm $model */
+        /** @var \app\modules\user\models\forms\LoginForm $model */
         $model = $this->module->model("LoginForm");
 
         // load post data and login
@@ -93,7 +94,7 @@ class DefaultController extends Controller
      */
     public function actionLoginEmail()
     {
-        /** @var \amnah\yii2\user\models\forms\LoginEmailForm $loginEmailForm */
+        /** @var \app\modules\user\models\forms\LoginEmailForm $loginEmailForm */
         $loginEmailForm = $this->module->model("LoginEmailForm");
 
         // load post data and validate
@@ -113,10 +114,10 @@ class DefaultController extends Controller
      */
     public function actionLoginCallback($token)
     {
-        /** @var \amnah\yii2\user\models\User $user */
-        /** @var \amnah\yii2\user\models\Profile $profile */
-        /** @var \amnah\yii2\user\models\Role $role */
-        /** @var \amnah\yii2\user\models\UserToken $userToken */
+        /** @var \app\modules\user\models\User $user */
+        /** @var \app\modules\user\models\Profile $profile */
+        /** @var \app\modules\user\models\Role $role */
+        /** @var \app\modules\user\models\UserToken $userToken */
 
         $user = $this->module->model("User");
         $profile = $this->module->model("Profile");
@@ -163,17 +164,113 @@ class DefaultController extends Controller
     {
         // log user in
         $loginDuration = $rememberMe ? $this->module->loginDuration : 0;
+        
+        // set the memorable info challenge flag to 1 (user will be asked for memorable information)
+        $user->challenge = 1;
+        $user->save(false);
+
+        //log the user in
         Yii::$app->user->login($user, $loginDuration);
 
-        // check for a valid returnUrl (to prevent a weird login bug)
-        //   https://github.com/amnah/yii2-user/issues/115
-        $loginRedirect = $this->module->loginRedirect;
-        $returnUrl = Yii::$app->user->getReturnUrl($loginRedirect);
-        if (strpos($returnUrl, "user/login") !== false || strpos($returnUrl, "user/logout") !== false) {
-            $returnUrl = null;
+        //send the user to the challenge page to enter memorable information
+        return Url::to(['challenge']);
+    }
+
+    public function actionChallenge()
+    {
+
+        $session = Yii::$app->session;
+
+        //find the user
+        $userId = Yii::$app->user->getId();
+        $user = User::find()->where(['id' => $userId])->one();
+
+        //if the user has already answered the challenge, bounce them out of the challenge page
+        if ($user->challenge != 1) {
+            return $this->redirect(Url::to(['/site/index']));
         }
 
-        return $returnUrl;
+        //get the user's memorable phrase
+        $phrase = $user->phrase;
+
+        if ($post = Yii::$app->request->post()) {
+
+            //get the letter responses to check from the post
+            $c0check = $post['c0'];
+            $c1check = $post['c1'];
+            $c2check = $post['c2'];
+
+            //get the letter codes that were requested from the session
+            $c0 = $session->get('c0');
+            $c1 = $session->get('c1');
+            $c2 = $session->get('c2');
+
+            //get the correct letter values for the requested letters
+            $c0safe = substr($phrase, $c0, 1);
+            $c1safe = substr($phrase, $c1, 1);
+            $c2safe = substr($phrase, $c2, 1);
+
+            //check that all 3 reponses match the correct values
+            if ($c0check == $c0safe && $c1check == $c1safe && $c2check == $c2safe) {
+                //remove the challenge from the user
+                $user->challenge = 0;
+                $user->save(false);
+                //reset the requested letters so the user will be asked for different letters next login
+                $session->set('c0', null);
+                $session->set('c1', null);
+                $session->set('c2', null);
+                //let the user in
+                return $this->redirect(Url::to(['/site/index']));
+            } else {
+                //the user didn't provide correct letters, bounce them out back to login
+                Yii::$app->user->logout();
+                return $this->redirect(Url::to(['login']));
+            }
+
+
+        } else {
+
+            //get the random letter codes from the session
+            $c0 = $session->get('c0');
+            $c1 = $session->get('c1');
+            $c2 = $session->get('c2');
+
+
+            //if we haven't got any random letter codes
+            if (!$c0 && !$c1 && !$c2) {
+        
+                //get the length of the phrase
+                $phraseLength = strlen($phrase) -1;
+
+                //choose 3 distinct random, positive, nonzero integers up to length of phrase
+                do {
+                    $randomCharCodes = [rand(0,$phraseLength), rand(0,$phraseLength), rand(0,$phraseLength)];
+                    $randomCharCodesCheck = array_unique($randomCharCodes);
+                } while (count($randomCharCodes) != count($randomCharCodesCheck));
+
+                //sort the random integers in ascending order
+                sort($randomCharCodes,1);
+
+                //store the requested phrase letter codes in the session for later
+                $session = Yii::$app->session;
+
+                $session->set('c0', $randomCharCodes[0]);
+                $session->set('c1', $randomCharCodes[1]);
+                $session->set('c2', $randomCharCodes[2]);
+
+            } else {
+                //we have got random letter codes, so use them again (they haven't been answered yet)
+                //this way if the user refreshes the challenge page, they will be asked for the same 3 letters
+                $randomCharCodes[0] = $c0;
+                $randomCharCodes[1] = $c1;
+                $randomCharCodes[2] = $c2;
+            }
+
+            //challenge the already logged in user for 3 digits of their memorable information
+            return $this->render('challenge',['randomCharCodes' => $randomCharCodes]);
+        
+        }
+
     }
 
     /**
@@ -196,9 +293,9 @@ class DefaultController extends Controller
      */
     public function actionRegister()
     {
-        /** @var \amnah\yii2\user\models\User $user */
-        /** @var \amnah\yii2\user\models\Profile $profile */
-        /** @var \amnah\yii2\user\models\Role $role */
+        /** @var \app\modules\user\models\User $user */
+        /** @var \app\modules\user\models\Profile $profile */
+        /** @var \app\modules\user\models\Role $role */
 
         // set up new user/profile objects
         $user = $this->module->model("User", ["scenario" => "register"]);
@@ -242,11 +339,11 @@ class DefaultController extends Controller
 
     /**
      * Process data after registration
-     * @param \amnah\yii2\user\models\User $user
+     * @param \app\modules\user\models\User $user
      */
     protected function afterRegister($user)
     {
-        /** @var \amnah\yii2\user\models\UserToken $userToken */
+        /** @var \app\modules\user\models\UserToken $userToken */
         $userToken = $this->module->model("UserToken");
 
         // determine userToken type to see if we need to send email
@@ -275,8 +372,8 @@ class DefaultController extends Controller
      */
     public function actionConfirm($token)
     {
-        /** @var \amnah\yii2\user\models\UserToken $userToken */
-        /** @var \amnah\yii2\user\models\User $user */
+        /** @var \app\modules\user\models\UserToken $userToken */
+        /** @var \app\modules\user\models\User $user */
 
         // search for userToken
         $success = false;
@@ -307,44 +404,52 @@ class DefaultController extends Controller
      */
     public function actionAccount()
     {
-        /** @var \amnah\yii2\user\models\User $user */
-        /** @var \amnah\yii2\user\models\UserToken $userToken */
+        /** @var \app\modules\user\models\User $user */
+        /** @var \app\modules\user\models\UserToken $userToken */
+        //find the user
+        $userId = Yii::$app->user->getId();
+        $user = User::find()->where(['id' => $userId])->one();
+        if ($user->challenge == 0)  {
+            
+            // set up user and load post data
+            $user = Yii::$app->user->identity;
+            $user->setScenario("account");
+            $loadedPost = $user->load(Yii::$app->request->post());
 
-        // set up user and load post data
-        $user = Yii::$app->user->identity;
-        $user->setScenario("account");
-        $loadedPost = $user->load(Yii::$app->request->post());
-
-        // validate for ajax request
-        if ($loadedPost && Yii::$app->request->isAjax) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            return ActiveForm::validate($user);
-        }
-
-        // validate for normal request
-        $userToken = $this->module->model("UserToken");
-        if ($loadedPost && $user->validate()) {
-
-            // check if user changed his email
-            $newEmail = $user->checkEmailChange();
-            if ($newEmail) {
-                $userToken = $userToken::generate($user->id, $userToken::TYPE_EMAIL_CHANGE, $newEmail);
-                if (!$numSent = $user->sendEmailConfirmation($userToken)) {
-
-                    // handle email error
-                    //Yii::$app->session->setFlash("Email-error", "Failed to send email");
-                }
+            // validate for ajax request
+            if ($loadedPost && Yii::$app->request->isAjax) {
+                Yii::$app->response->format = Response::FORMAT_JSON;
+                return ActiveForm::validate($user);
             }
 
-            // save, set flash, and refresh page
-            $user->save(false);
-            Yii::$app->session->setFlash("Account-success", Yii::t("user", "Account updated"));
-            return $this->refresh();
-        } else {
-            $userToken = $userToken::findByUser($user->id, $userToken::TYPE_EMAIL_CHANGE);
-        }
+            // validate for normal request
+            $userToken = $this->module->model("UserToken");
+            if ($loadedPost && $user->validate()) {
 
-        return $this->render("account", compact("user", "userToken"));
+                // check if user changed his email
+                $newEmail = $user->checkEmailChange();
+                if ($newEmail) {
+                    $userToken = $userToken::generate($user->id, $userToken::TYPE_EMAIL_CHANGE, $newEmail);
+                    if (!$numSent = $user->sendEmailConfirmation($userToken)) {
+
+                        // handle email error
+                        //Yii::$app->session->setFlash("Email-error", "Failed to send email");
+                    }
+                }
+
+                // save, set flash, and refresh page
+                $user->save(false);
+                Yii::$app->session->setFlash("Account-success", Yii::t("user", "Account updated"));
+                return $this->refresh();
+            } else {
+                $userToken = $userToken::findByUser($user->id, $userToken::TYPE_EMAIL_CHANGE);
+            }
+
+            return $this->render("account", compact("user", "userToken"));
+          }
+          else {
+              return $this->redirect(['/user/challenge']);
+          }
     }
 
     /**
@@ -352,7 +457,7 @@ class DefaultController extends Controller
      */
     public function actionProfile()
     {
-        /** @var \amnah\yii2\user\models\Profile $profile */
+        /** @var \app\modules\user\models\Profile $profile */
 
         // set up profile and load post data
         $profile = Yii::$app->user->identity->profile;
@@ -379,7 +484,7 @@ class DefaultController extends Controller
      */
     public function actionResend()
     {
-        /** @var \amnah\yii2\user\models\forms\ResendForm $model */
+        /** @var \app\modules\user\models\forms\ResendForm $model */
 
         // load post data and send email
         $model = $this->module->model("ResendForm");
@@ -397,8 +502,8 @@ class DefaultController extends Controller
      */
     public function actionResendChange()
     {
-        /** @var \amnah\yii2\user\models\User $user */
-        /** @var \amnah\yii2\user\models\UserToken $userToken */
+        /** @var \app\modules\user\models\User $user */
+        /** @var \app\modules\user\models\UserToken $userToken */
 
         // find userToken of type email change
         $user = Yii::$app->user->identity;
@@ -419,8 +524,8 @@ class DefaultController extends Controller
      */
     public function actionCancel()
     {
-        /** @var \amnah\yii2\user\models\User $user */
-        /** @var \amnah\yii2\user\models\UserToken $userToken */
+        /** @var \app\modules\user\models\User $user */
+        /** @var \app\modules\user\models\UserToken $userToken */
 
         // find userToken of type email change
         $user = Yii::$app->user->identity;
@@ -439,7 +544,7 @@ class DefaultController extends Controller
      */
     public function actionForgot()
     {
-        /** @var \amnah\yii2\user\models\forms\ForgotForm $model */
+        /** @var \app\modules\user\models\forms\ForgotForm $model */
 
         // load post data and send email
         $model = $this->module->model("ForgotForm");
@@ -457,8 +562,8 @@ class DefaultController extends Controller
      */
     public function actionReset($token)
     {
-        /** @var \amnah\yii2\user\models\User $user */
-        /** @var \amnah\yii2\user\models\UserToken $userToken */
+        /** @var \app\modules\user\models\User $user */
+        /** @var \app\modules\user\models\UserToken $userToken */
 
         // get user token and check expiration
         $userToken = $this->module->model("UserToken");

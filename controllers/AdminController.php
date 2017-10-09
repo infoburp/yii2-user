@@ -1,9 +1,9 @@
 <?php
 
-namespace amnah\yii2\user\controllers;
+namespace infoburp\yii2\user\controllers;
 
 use Yii;
-use amnah\yii2\user\models\User;
+use infoburp\yii2\user\models\User;
 use yii\web\Controller;
 use yii\web\ForbiddenHttpException;
 use yii\web\NotFoundHttpException;
@@ -17,7 +17,7 @@ use yii\widgets\ActiveForm;
 class AdminController extends Controller
 {
     /**
-     * @var \amnah\yii2\user\Module
+     * @var \app\modules\user\Module
      * @inheritdoc
      */
     public $module;
@@ -57,11 +57,18 @@ class AdminController extends Controller
      */
     public function actionIndex()
     {
-        /** @var \amnah\yii2\user\models\search\UserSearch $searchModel */
-        $searchModel = $this->module->model("UserSearch");
-        $dataProvider = $searchModel->search(Yii::$app->request->getQueryParams());
+        $userId = Yii::$app->user->getId();
+        $user = User::find()->where(['id' => $userId])->one();
+        if ($user->challenge == 0)  {
+            /** @var \app\modules\user\models\search\UserSearch $searchModel */
+            $searchModel = $this->module->model("UserSearch");
+            $dataProvider = $searchModel->search(Yii::$app->request->getQueryParams());
 
-        return $this->render('index', compact('searchModel', 'dataProvider'));
+            return $this->render('index', compact('searchModel', 'dataProvider'));
+
+        } else {
+            return $this->redirect(['/user/challenge']);
+        }
     }
 
     /**
@@ -71,9 +78,15 @@ class AdminController extends Controller
      */
     public function actionView($id)
     {
-        return $this->render('view', [
-            'user' => $this->findModel($id),
-        ]);
+        $userId = Yii::$app->user->getId();
+        $user = User::find()->where(['id' => $userId])->one();
+        if ($user->challenge == 0)  {
+            return $this->render('view', [
+                'user' => $this->findModel($id),
+            ]);
+        } else {
+            return $this->redirect(['/user/challenge']);
+        }
     }
 
     /**
@@ -83,31 +96,37 @@ class AdminController extends Controller
      */
     public function actionCreate()
     {
-        /** @var \amnah\yii2\user\models\User $user */
-        /** @var \amnah\yii2\user\models\Profile $profile */
+        $userId = Yii::$app->user->getId();
+        $user = User::find()->where(['id' => $userId])->one();
+        if ($user->challenge == 0)  {
+            /** @var \app\modules\user\models\User $user */
+            /** @var \app\modules\user\models\Profile $profile */
 
-        $user = $this->module->model("User");
-        $user->setScenario("admin");
-        $profile = $this->module->model("Profile");
+            $user = $this->module->model("User");
+            $user->setScenario("admin");
+            $profile = $this->module->model("Profile");
 
-        $post = Yii::$app->request->post();
-        $userLoaded = $user->load($post);
-        $profile->load($post);
+            $post = Yii::$app->request->post();
+            $userLoaded = $user->load($post);
+            $profile->load($post);
 
-        // validate for ajax request
-        if (Yii::$app->request->isAjax) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            return ActiveForm::validate($user, $profile);
+            // validate for ajax request
+            if (Yii::$app->request->isAjax) {
+                Yii::$app->response->format = Response::FORMAT_JSON;
+                return ActiveForm::validate($user, $profile);
+            }
+
+            if ($userLoaded && $user->validate() && $profile->validate()) {
+                $user->save(false);
+                $profile->setUser($user->id)->save(false);
+                return $this->redirect(['view', 'id' => $user->id]);
+            }
+
+            // render
+            return $this->render('create', compact('user', 'profile'));
+        } else {
+            return $this->redirect(['/user/challenge']);
         }
-
-        if ($userLoaded && $user->validate() && $profile->validate()) {
-            $user->save(false);
-            $profile->setUser($user->id)->save(false);
-            return $this->redirect(['view', 'id' => $user->id]);
-        }
-
-        // render
-        return $this->render('create', compact('user', 'profile'));
     }
 
     /**
@@ -118,30 +137,36 @@ class AdminController extends Controller
      */
     public function actionUpdate($id)
     {
-        // set up user and profile
-        $user = $this->findModel($id);
-        $user->setScenario("admin");
-        $profile = $user->profile;
+        $userId = Yii::$app->user->getId();
+        $user = User::find()->where(['id' => $userId])->one();
+        if ($user->challenge == 0)  {
+            // set up user and profile
+            $user = $this->findModel($id);
+            $user->setScenario("admin");
+            $profile = $user->profile;
 
-        $post = Yii::$app->request->post();
-        $userLoaded = $user->load($post);
-        $profile->load($post);
+            $post = Yii::$app->request->post();
+            $userLoaded = $user->load($post);
+            $profile->load($post);
 
-        // validate for ajax request
-        if (Yii::$app->request->isAjax) {
-            Yii::$app->response->format = Response::FORMAT_JSON;
-            return ActiveForm::validate($user, $profile);
+            // validate for ajax request
+            if (Yii::$app->request->isAjax) {
+                Yii::$app->response->format = Response::FORMAT_JSON;
+                return ActiveForm::validate($user, $profile);
+            }
+
+            // load post data and validate
+            if ($userLoaded && $user->validate() && $profile->validate()) {
+                $user->save(false);
+                $profile->setUser($user->id)->save(false);
+                return $this->redirect(['view', 'id' => $user->id]);
+            }
+
+            // render
+            return $this->render('update', compact('user', 'profile'));
+        } else {
+            return $this->redirect(['/user/challenge']);
         }
-
-        // load post data and validate
-        if ($userLoaded && $user->validate() && $profile->validate()) {
-            $user->save(false);
-            $profile->setUser($user->id)->save(false);
-            return $this->redirect(['view', 'id' => $user->id]);
-        }
-
-        // render
-        return $this->render('update', compact('user', 'profile'));
     }
 
     /**
@@ -152,17 +177,23 @@ class AdminController extends Controller
      */
     public function actionDelete($id)
     {
-        // delete profile and userTokens first to handle foreign key constraint
-        $user = $this->findModel($id);
-        $profile = $user->profile;
-        $userToken = $this->module->model("UserToken");
-        $userAuth = $this->module->model("UserAuth");
-        $userToken::deleteAll(['user_id' => $user->id]);
-        $userAuth::deleteAll(['user_id' => $user->id]);
-        $profile->delete();
-        $user->delete();
+        $userId = Yii::$app->user->getId();
+        $user = User::find()->where(['id' => $userId])->one();
+        if ($user->challenge == 0)  {
+            // delete profile and userTokens first to handle foreign key constraint
+            $user = $this->findModel($id);
+            $profile = $user->profile;
+            $userToken = $this->module->model("UserToken");
+            $userAuth = $this->module->model("UserAuth");
+            $userToken::deleteAll(['user_id' => $user->id]);
+            $userAuth::deleteAll(['user_id' => $user->id]);
+            $profile->delete();
+            $user->delete();
 
-        return $this->redirect(['index']);
+            return $this->redirect(['index']);
+        } else {
+            return $this->redirect(['/user/challenge']);
+        }
     }
 
     /**
@@ -174,13 +205,19 @@ class AdminController extends Controller
      */
     protected function findModel($id)
     {
-        /** @var \amnah\yii2\user\models\User $user */
-        $user = $this->module->model("User");
-        $user = $user::findOne($id);
-        if ($user) {
-            return $user;
-        }
+        $userId = Yii::$app->user->getId();
+        $user = User::find()->where(['id' => $userId])->one();
+        if ($user->challenge == 0)  {
+            /** @var \app\modules\user\models\User $user */
+            $user = $this->module->model("User");
+            $user = $user::findOne($id);
+            if ($user) {
+                return $user;
+            }
 
-        throw new NotFoundHttpException('The requested page does not exist.');
+            throw new NotFoundHttpException('The requested page does not exist.');
+        } else {
+              return $this->redirect(['/user/challenge']);
+          }
     }
 }

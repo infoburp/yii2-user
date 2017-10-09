@@ -1,6 +1,6 @@
 <?php
 
-namespace amnah\yii2\user\components;
+namespace infoburp\yii2\user\components;
 
 use Yii;
 use yii\authclient\OAuth2;

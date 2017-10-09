@@ -1,14 +1,14 @@
 <?php
 
-namespace amnah\yii2\user\models\search;
+namespace infoburp\yii2\user\models\search;
 
 use Yii;
 use yii\base\Model;
 use yii\data\ActiveDataProvider;
-use amnah\yii2\user\models\User;
+use app\modules\user\models\User;
 
 /**
- * UserSearch represents the model behind the search form about `amnah\yii2\user\models\User`.
+ * UserSearch represents the model behind the search form about `app\modules\user\models\User`.
  */
 class UserSearch extends User
 {
@@ -56,8 +56,8 @@ class UserSearch extends User
      */
     public function search($params)
     {
-        /** @var \amnah\yii2\user\models\User $user */
-        /** @var \amnah\yii2\user\models\Profile $profile */
+        /** @var \app\modules\user\models\User $user */
+        /** @var \app\modules\user\models\Profile $profile */
 
         // get models
         $user = $this->module->model("User");

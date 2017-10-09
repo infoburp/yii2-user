@@ -1,6 +1,6 @@
 <?php
 
-namespace amnah\yii2\user;
+namespace app\modules\user;
 
 use Yii;
 use yii\base\InvalidConfigException;
@@ -100,11 +100,11 @@ class Module extends \yii\base\Module
     public $forceTranslation = false;
 
     /**
-     * @var array Model classes, e.g., ["User" => "amnah\yii2\user\models\User"]
+     * @var array Model classes, e.g., ["User" => "app\modules\user\models\User"]
      * Usage:
      *   $user = Yii::$app->getModule("user")->model("User", $config);
      *   (equivalent to)
-     *   $user = new \amnah\yii2\user\models\User($config);
+     *   $user = new \app\modules\user\models\User($config);
      *
      * The model classes here will be merged with/override the [[getDefaultModelClasses()|default ones]]
      */
@@ -182,8 +182,8 @@ class Module extends \yii\base\Module
         // "common/config" instead of "frontend/config" and/or "backend/config"
         //   -> this results in users failing to login without any feedback/error message
         $userComponent = Yii::$app->get('user', false);
-        if ($userComponent && !$userComponent instanceof \amnah\yii2\user\components\User) {
-            throw new InvalidConfigException('Yii::$app->user is not set properly. It needs to extend \amnah\yii2\user\components\User');
+        if ($userComponent && !$userComponent instanceof \app\modules\user\components\User) {
+            throw new InvalidConfigException('Yii::$app->user is not set properly. It needs to extend \app\modules\user\components\User');
         }
     }
 
@@ -199,20 +199,20 @@ class Module extends \yii\base\Module
         } elseif (class_exists('app\models\User')) {
             $userClass = 'app\models\User';
         } else {
-            $userClass = 'amnah\yii2\user\models\User';
+            $userClass = 'app\modules\user\models\User';
         }
 
         return [
             'User' => $userClass,
-            'Profile' => 'amnah\yii2\user\models\Profile',
-            'Role' => 'amnah\yii2\user\models\Role',
-            'UserToken' => 'amnah\yii2\user\models\UserToken',
-            'UserAuth' => 'amnah\yii2\user\models\UserAuth',
-            'ForgotForm' => 'amnah\yii2\user\models\forms\ForgotForm',
-            'LoginForm' => 'amnah\yii2\user\models\forms\LoginForm',
-            'ResendForm' => 'amnah\yii2\user\models\forms\ResendForm',
-            'UserSearch' => 'amnah\yii2\user\models\search\UserSearch',
-            'LoginEmailForm' => 'amnah\yii2\user\models\forms\LoginEmailForm',
+            'Profile' => 'app\modules\user\models\Profile',
+            'Role' => 'app\modules\user\models\Role',
+            'UserToken' => 'app\modules\user\models\UserToken',
+            'UserAuth' => 'app\modules\user\models\UserAuth',
+            'ForgotForm' => 'app\modules\user\models\forms\ForgotForm',
+            'LoginForm' => 'app\modules\user\models\forms\LoginForm',
+            'ResendForm' => 'app\modules\user\models\forms\ResendForm',
+            'UserSearch' => 'app\modules\user\models\search\UserSearch',
+            'LoginEmailForm' => 'app\modules\user\models\forms\LoginEmailForm',
         ];
     }
 

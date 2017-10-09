@@ -1,6 +1,6 @@
 <?php
 
-namespace amnah\yii2\user\models\forms;
+namespace infoburp\yii2\user\models\forms;
 
 use Yii;
 use yii\base\Model;
@@ -16,12 +16,12 @@ class ResendForm extends Model
     public $email;
 
     /**
-     * @var \amnah\yii2\user\models\User
+     * @var \app\modules\user\models\User
      */
     protected $user = false;
 
     /**
-     * @var \amnah\yii2\user\Module
+     * @var \app\modules\user\Module
      */
     public $module;
 
@@ -66,15 +66,15 @@ class ResendForm extends Model
 
     /**
      * Get user based on email
-     * @return \amnah\yii2\user\models\User|null
+     * @return \app\modules\user\models\User|null
      */
     public function getUser()
     {
         // get and store user
         if ($this->user === false) {
 
-            /** @var \amnah\yii2\user\models\User $user */
-            /** @var \amnah\yii2\user\models\UserToken $userToken */
+            /** @var \app\modules\user\models\User $user */
+            /** @var \app\modules\user\models\UserToken $userToken */
             $user = $this->module->model("User");
             $userToken = $this->module->model("UserToken");
 
@@ -110,7 +110,7 @@ class ResendForm extends Model
             return false;
         }
 
-        /** @var \amnah\yii2\user\models\UserToken $userToken */
+        /** @var \app\modules\user\models\UserToken $userToken */
         $user = $this->getUser();
         $userToken = $this->module->model("UserToken");
 

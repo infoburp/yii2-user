@@ -1,6 +1,6 @@
 <?php
 
-namespace amnah\yii2\user\models;
+namespace infoburp\yii2\user\models;
 
 use Yii;
 use yii\db\ActiveRecord;
@@ -41,7 +41,7 @@ class UserToken extends ActiveRecord
     const TYPE_EMAIL_LOGIN = 4;
 
     /**
-     * @var \amnah\yii2\user\Module
+     * @var \app\modules\user\Module
      */
     public $module;
 
