@@ -54,6 +54,15 @@ class User extends \yii\web\User
     /**
      * @inheritdoc
      */
+    public function getPassedChallenge()
+    {
+        $user = $this->getIdentity();
+        return !$user->challenge;
+    }
+
+    /**
+     * @inheritdoc
+     */
     public function afterLogin($identity, $cookieBased, $duration)
     {
         /** @var \app\modules\user\models\User $identity */

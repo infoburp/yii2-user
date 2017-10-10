@@ -48,8 +48,4 @@ $this->params['breadcrumbs'][] = $this->title;
 
     <?php ActiveForm::end(); ?>
 
-    <br>
-
-    <b>Note: For the purposes of this demo, the login is U: ncoders, P: ncoders, Phrase: ncoders, Yubi Key Secret Hex: 5d a3 21 0b 37 75 f3 9c 6f 0e a4 b2 fe 7c 02 c4 68 3e d5 ab (LWRSCCZXOXZZY3YOUSZP47ACYRUD5VNL in base 32)</b>
-
 </div>
