@@ -199,20 +199,20 @@ class Module extends \yii\base\Module
         } elseif (class_exists('app\models\User')) {
             $userClass = 'app\models\User';
         } else {
-            $userClass = 'app\modules\user\models\User';
+            $userClass = 'infoburp\yii2\user\models\User';
         }
 
         return [
             'User' => $userClass,
-            'Profile' => 'app\modules\user\models\Profile',
-            'Role' => 'app\modules\user\models\Role',
-            'UserToken' => 'app\modules\user\models\UserToken',
-            'UserAuth' => 'app\modules\user\models\UserAuth',
-            'ForgotForm' => 'app\modules\user\models\forms\ForgotForm',
-            'LoginForm' => 'app\modules\user\models\forms\LoginForm',
-            'ResendForm' => 'app\modules\user\models\forms\ResendForm',
-            'UserSearch' => 'app\modules\user\models\search\UserSearch',
-            'LoginEmailForm' => 'app\modules\user\models\forms\LoginEmailForm',
+            'Profile' => 'infoburp\yii2\user\models\Profile',
+            'Role' => 'infoburp\yii2\user\models\Role',
+            'UserToken' => 'infoburp\yii2\user\models\UserToken',
+            'UserAuth' => 'infoburp\yii2\user\models\UserAuth',
+            'ForgotForm' => 'infoburp\yii2\user\models\forms\ForgotForm',
+            'LoginForm' => 'infoburp\yii2\user\models\forms\LoginForm',
+            'ResendForm' => 'infoburp\yii2\user\models\forms\ResendForm',
+            'UserSearch' => 'infoburp\yii2\user\models\search\UserSearch',
+            'LoginEmailForm' => 'infoburp\yii2\user\models\forms\LoginEmailForm',
         ];
     }
 
