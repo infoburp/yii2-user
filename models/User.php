@@ -9,7 +9,7 @@ use yii\swiftmailer\Mailer;
 use yii\swiftmailer\Message;
 use yii\helpers\Inflector;
 use ReflectionClass;
-use sam002\otp\behaviors\OtpBehavior;
+use infoburp\yii2\otp\behaviors\OtpBehavior;
 
 /**
  * This is the model class for table "tbl_user".

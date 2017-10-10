@@ -1,6 +1,6 @@
 <?php
 
-namespace app\modules\user;
+namespace infoburp\yii2\user;
 
 use Yii;
 use yii\base\InvalidConfigException;
@@ -182,8 +182,8 @@ class Module extends \yii\base\Module
         // "common/config" instead of "frontend/config" and/or "backend/config"
         //   -> this results in users failing to login without any feedback/error message
         $userComponent = Yii::$app->get('user', false);
-        if ($userComponent && !$userComponent instanceof \app\modules\user\components\User) {
-            throw new InvalidConfigException('Yii::$app->user is not set properly. It needs to extend \app\modules\user\components\User');
+        if ($userComponent && !$userComponent instanceof \infoburp\yii2\user\components\User) {
+            throw new InvalidConfigException('Yii::$app->user is not set properly. It needs to extend \infoburp\yii2\user\components\User');
         }
     }
 
