@@ -3,7 +3,7 @@
 use yii\helpers\Html;
 use yii\helpers\ArrayHelper;
 use yii\widgets\ActiveForm;
-use infoburp\yii2\user\helpers\Timezone;
+use app\modules\user\helpers\Timezone;
 
 /**
  * @var yii\web\View $this
